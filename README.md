@@ -1,5 +1,7 @@
 # Conversor DER → Tabelas
 
+**▶ Acesse:** https://cidandrade.github.io/conversor-der-tabelas/
+
 Página interativa (mobile-first) que leva do **modelo conceitual** ao **modelo lógico**. O aluno ajusta as cardinalidades de um relacionamento e vê, ao vivo:
 
 - a frase que a cardinalidade diz (“cada funcionário se liga a exatamente 1 departamento”);
