@@ -1,0 +1,1358 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Conversor DER → Tabelas</title>
+<meta name="description" content="Do modelo conceitual ao modelo lógico: ajuste as cardinalidades de um relacionamento e veja a regra de implementação, as tabelas e o CREATE TABLE do MySQL — Modelagem de Banco de Dados, Prof. Cid Andrade.">
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400..700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --creme2: #F3ECDF;
+  --creme: #FAF6EC;
+  --tinta: #241B2E;
+  --tinta-suave: #6E6577;
+  --ameixa: #3B2350;
+  --ameixa2: #2E1B3F;
+  --ameixa-suave: #7C6289;
+  --verde: #234F33;
+  --verde2: #1B3E28;
+  --verde-suave: #7FA089;
+  --dourado: #B08D57;
+  --dourado-claro: #C9A56E;
+  --dourado-escuro: #755C33;
+  --vermelho: #8A2E2E;
+  --borda: rgba(59, 35, 80, .16);
+  --sombra: 0 1px 2px rgba(36, 27, 46, .06), 0 6px 18px rgba(36, 27, 46, .07);
+  --serif: "Fraunces", Georgia, serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--creme2);
+  color: var(--tinta);
+  font: 16px/1.6 var(--sans);
+  overflow-x: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--dourado); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- topo ---------- */
+.topo {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--ameixa); color: var(--creme);
+  border-bottom: 3px solid var(--dourado);
+}
+.topo-int {
+  max-width: 1180px; margin: 0 auto; padding: 10px 16px 0;
+}
+.marca small {
+  display: block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--dourado-claro); font-weight: 600;
+}
+.marca strong { display: block; font: 600 18px/1.2 var(--serif); }
+.abas {
+  display: flex; gap: 4px; margin-top: 8px; overflow-x: auto; scrollbar-width: none;
+}
+.abas::-webkit-scrollbar { display: none; }
+.aba {
+  border: 0; background: transparent; color: rgba(250, 246, 236, .78);
+  padding: 8px 14px 10px; font-weight: 600; font-size: 15px; white-space: nowrap;
+  border-radius: 10px 10px 0 0;
+}
+.aba[aria-selected="true"] { background: var(--creme2); color: var(--ameixa); }
+
+main { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+.painel[hidden] { display: none; }
+
+h1.titulo {
+  font: 700 clamp(28px, 7vw, 44px)/1.1 var(--serif);
+  margin: 4px 0 10px; color: var(--ameixa); letter-spacing: -.01em;
+}
+h1.titulo em { color: var(--verde); font-style: italic; font-weight: 600; }
+.lead { font-size: 17px; max-width: 70ch; margin: 0 0 18px; }
+.rotulo {
+  display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--dourado-escuro);
+}
+
+.cartao {
+  background: var(--creme); border: 1px solid var(--borda); border-radius: 14px;
+  padding: 18px 16px; box-shadow: var(--sombra); margin-bottom: 16px; min-width: 0;
+}
+.cartao h2 { font: 600 21px/1.25 var(--serif); margin: 2px 0 10px; color: var(--ameixa); }
+.cartao h3 { font: 600 17px/1.3 var(--serif); margin: 16px 0 6px; color: var(--ameixa); }
+.cartao p { margin: 0 0 10px; }
+.cartao ul { margin: 0 0 6px; padding-left: 20px; }
+.cartao li { margin-bottom: 6px; }
+
+.grade { display: grid; gap: 0 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 960px) {
+  .grade { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; }
+  .grade > .col { position: sticky; top: 108px; }
+}
+
+/* ---------- chips de cenário ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 1px solid var(--borda); background: var(--creme2); color: var(--ameixa);
+  border-radius: 999px; padding: 6px 12px; font-size: 14px; font-weight: 600;
+}
+.chip[aria-pressed="true"] { background: var(--ameixa); color: var(--creme); border-color: var(--ameixa); }
+.chip small { font-weight: 500; opacity: .75; }
+
+.campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+.campo label { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-suave); margin-bottom: 3px; }
+.campo input {
+  width: 100%; border: 1px solid var(--borda); border-radius: 8px; padding: 7px 10px; background: #fff;
+}
+.marcar { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 15px; }
+.marcar input { width: 18px; height: 18px; accent-color: var(--verde); }
+
+/* ---------- diagrama ---------- */
+.der { width: 100%; height: auto; display: block; margin: 4px 0 8px; }
+#treino .der { max-width: 560px; margin: 4px auto 8px; }
+.der text { font-family: var(--sans); }
+.der .ent rect { fill: var(--creme2); stroke: var(--ameixa); stroke-width: 2; }
+.der .ent text { font-weight: 700; fill: var(--ameixa); }
+.der .rel polygon { fill: #fff; stroke: var(--ameixa); stroke-width: 2; }
+.der .rel text { font-weight: 600; fill: var(--tinta); font-style: italic; }
+.der .lig { stroke: var(--ameixa); stroke-width: 2; fill: none; }
+.der .card { cursor: pointer; }
+.der .card rect { fill: var(--creme); stroke: var(--dourado); stroke-width: 1.5; }
+.der .card text { font: 700 15px var(--mono); fill: var(--dourado-escuro); }
+.der .card:hover rect, .der .card.foco rect { fill: var(--dourado-claro); }
+.der .card.foco text { fill: var(--tinta); }
+.der .papel { font-size: 13px; font-style: italic; fill: var(--tinta-suave); }
+.der .attr circle { fill: #fff; stroke: var(--ameixa); stroke-width: 2; }
+.der .attr text { font-size: 13px; fill: var(--tinta); }
+.der .seta { stroke: var(--dourado); stroke-width: 2; fill: none; stroke-dasharray: 5 4; }
+.der .tri polygon { fill: #fff; stroke: var(--ameixa); stroke-width: 2; }
+.der .tri text { font: 700 14px var(--mono); fill: var(--ameixa); }
+
+.lados { display: grid; gap: 12px; }
+@media (min-width: 560px) { .lados { grid-template-columns: 1fr 1fr; } }
+.lado h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--tinta-suave); }
+.lado h4 b { color: var(--ameixa); }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--creme2); border-radius: 10px; padding: 4px; }
+.seg.dois { grid-template-columns: repeat(2, 1fr); }
+.seg.tres { grid-template-columns: repeat(3, 1fr); }
+.seg button {
+  border: 0; background: transparent; border-radius: 7px; padding: 7px 2px;
+  font: 700 14px var(--mono); color: var(--ameixa);
+}
+.seg button[aria-pressed="true"] { background: var(--ameixa); color: var(--creme); }
+.seg.texto button { font: 600 13.5px/1.25 var(--sans); padding: 8px 4px; }
+
+.leitura { list-style: none; padding: 0 !important; margin: 14px 0 0 !important; display: grid; gap: 8px; }
+.leitura li {
+  margin: 0 !important; padding: 10px 12px; border-radius: 10px; background: var(--creme2);
+  font-size: 15.5px; display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start;
+}
+.leitura li code { font-weight: 700; color: var(--dourado-escuro); background: var(--creme); }
+.leitura li.foco { box-shadow: 0 0 0 2px var(--dourado); }
+.dica { font-size: 13.5px; color: var(--tinta-suave); margin: 10px 0 0 !important; }
+
+.tipo-rel {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--tinta-suave);
+}
+.tipo-rel b { font: 700 16px var(--mono); background: var(--verde); color: var(--creme); border-radius: 8px; padding: 3px 10px; }
+
+/* ---------- tabela de Heuser ---------- */
+.heuser { border-collapse: collapse; width: 100%; font-size: 14px; }
+.heuser th, .heuser td { padding: 6px 8px; border-bottom: 1px solid var(--borda); text-align: center; }
+.heuser th { font: 700 11.5px/1.2 var(--sans); letter-spacing: .04em; text-transform: uppercase; color: var(--tinta-suave); }
+.heuser td:first-child { text-align: left; font-family: var(--mono); font-weight: 700; color: var(--ameixa); white-space: nowrap; }
+.heuser tr.grupo td { background: var(--creme2); font: 700 12px var(--sans); color: var(--tinta-suave); text-align: left; letter-spacing: .06em; }
+.heuser tbody tr.linha { cursor: pointer; }
+.heuser tbody tr.linha:hover td { background: rgba(201, 165, 110, .14); }
+.heuser tbody tr.atual td { background: rgba(201, 165, 110, .32); }
+.heuser tbody tr.atual td:first-child { box-shadow: inset 4px 0 0 var(--dourado); }
+.m-ok { color: var(--verde); font-weight: 800; }
+.m-pode { color: var(--dourado-escuro); font-weight: 800; }
+.m-nao { color: var(--vermelho); font-weight: 800; }
+.legenda-h { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--tinta-suave); margin-top: 8px; }
+
+/* ---------- alternativas ---------- */
+.alts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+.alt {
+  border: 2px solid var(--borda); background: var(--creme); border-radius: 12px; padding: 8px 6px;
+  text-align: center; line-height: 1.2;
+}
+.alt b { display: block; font-size: 22px; line-height: 1.1; }
+.alt span { font-size: 13px; font-weight: 600; }
+.alt[aria-pressed="true"] { border-color: var(--ameixa); background: #fff; box-shadow: 0 0 0 2px rgba(59, 35, 80, .18); }
+.veredito {
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 15.5px;
+  border-left: 5px solid var(--verde); background: rgba(127, 160, 137, .18);
+}
+.veredito.pode { border-left-color: var(--dourado); background: rgba(201, 165, 110, .18); }
+.veredito.nao { border-left-color: var(--vermelho); background: rgba(138, 46, 46, .09); }
+.veredito strong { display: block; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 2px; }
+.veredito p { margin: 0 0 6px !important; }
+.veredito p:last-child { margin: 0 !important; }
+
+.esquema { display: grid; gap: 8px; margin: 0 0 6px; }
+.esquema div {
+  font: 14.5px/1.55 var(--mono); background: var(--creme2); border-radius: 8px; padding: 8px 12px;
+  overflow-wrap: anywhere;
+}
+.esquema b { color: var(--ameixa); }
+.esquema u { text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.esquema i { color: var(--verde); font-style: normal; font-weight: 700; }
+.esquema .ref { display: block; font-size: 13px; color: var(--tinta-suave); }
+.esquema .op { color: var(--dourado-escuro); }
+.leg-esq { font-size: 13px; color: var(--tinta-suave); margin: 0 0 4px !important; }
+
+.garantias { list-style: none; padding: 0 !important; margin: 0 !important; display: grid; gap: 6px; }
+.garantias li {
+  margin: 0 !important; display: grid; grid-template-columns: 24px 1fr; gap: 8px; align-items: start;
+  font-size: 15px; padding: 6px 0; border-bottom: 1px dashed var(--borda);
+}
+.garantias li:last-child { border-bottom: 0; }
+.garantias li > span:first-child { font-weight: 800; text-align: center; }
+.garantias li small { display: block; color: var(--tinta-suave); font-size: 13.5px; }
+
+/* ---------- código ---------- */
+.bloco-titulo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 18px 0 8px; flex-wrap: wrap; }
+.bloco-titulo h3 { margin: 0 !important; }
+.acoes { display: flex; gap: 6px; }
+.btn-peq {
+  border: 1px solid var(--borda); background: var(--creme); color: var(--ameixa);
+  border-radius: 8px; padding: 5px 10px; font-size: 13px; font-weight: 600;
+}
+.codigo {
+  background: var(--tinta); color: var(--creme);
+  border-radius: 12px; overflow: hidden; box-shadow: var(--sombra);
+  border-top: 3px solid var(--dourado);
+}
+.codigo pre { margin: 0; padding: 14px 0; overflow-x: auto; font: 13.5px/1.65 var(--mono); }
+.codigo .ln { display: block; padding: 0 16px; min-height: 1.65em; white-space: pre; border-left: 3px solid transparent; }
+.codigo .ln.nova { animation: acende 1.6s ease-out; }
+@keyframes acende {
+  0% { background: rgba(201, 165, 110, .42); border-left-color: var(--dourado-claro); }
+  100% { background: transparent; border-left-color: transparent; }
+}
+.tk-kw { color: var(--dourado-claro); font-weight: 700; }
+.tk-fn { color: var(--dourado-claro); }
+.tk-str { color: var(--verde-suave); }
+.tk-num { color: var(--verde-suave); }
+.tk-com { color: rgba(250, 246, 236, .7); font-style: italic; }
+.tk-pont { color: rgba(250, 246, 236, .8); }
+
+.nota {
+  border-left: 4px solid var(--dourado); background: var(--creme2); border-radius: 0 12px 12px 0;
+  padding: 12px 14px; margin-top: 12px; font-size: 15px;
+}
+.nota strong.tipo { display: block; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dourado-escuro); margin-bottom: 4px; }
+.nota.verde { border-left-color: var(--verde); }
+.nota.verde strong.tipo { color: var(--verde); }
+.nota p { margin: 0 0 6px !important; }
+.nota p:last-child { margin: 0 !important; }
+code { font-family: var(--mono); font-size: .9em; background: rgba(59, 35, 80, .08); padding: 1px 5px; border-radius: 4px; }
+
+.passos { counter-reset: p; list-style: none; padding: 0 !important; }
+.passos li { counter-increment: p; display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+.passos li::before {
+  content: counter(p); width: 26px; height: 26px; border-radius: 50%; background: var(--ameixa); color: var(--creme);
+  font: 700 13px/26px var(--mono); text-align: center;
+}
+
+/* ---------- treino ---------- */
+.enunciado { font: 500 19px/1.5 var(--serif); color: var(--tinta); margin: 4px 0 14px !important; }
+.placar { font: 700 14px var(--mono); color: var(--verde); }
+.retorno { margin-top: 14px; }
+.botoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.btn-prim, .btn-sec {
+  border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 15px; border: 2px solid var(--ameixa);
+}
+.btn-prim { background: var(--ameixa); color: var(--creme); }
+.btn-sec { background: var(--creme); color: var(--ameixa); }
+.btn-prim:disabled { opacity: .45; cursor: default; }
+
+.rodape { text-align: center; font-size: 13px; color: var(--tinta-suave); margin-top: 28px; }
+.rodape a { color: var(--ameixa); }
+
+@media (prefers-reduced-motion: reduce) { .codigo .ln.nova { animation: none; } }
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-int">
+    <div class="marca">
+      <small>Modelagem de Banco de Dados · Prof. Cid Andrade</small>
+      <strong>Conversor DER → Tabelas</strong>
+    </div>
+    <nav class="abas" role="tablist" aria-label="Seções">
+      <button class="aba" role="tab" id="aba-conversor" aria-controls="p-conversor" aria-selected="true">Relacionamento binário</button>
+      <button class="aba" role="tab" id="aba-casos" aria-controls="p-casos" aria-selected="false">Outros casos</button>
+      <button class="aba" role="tab" id="aba-treino" aria-controls="p-treino" aria-selected="false">Treino de cardinalidade</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ CONVERSOR ============ -->
+  <section class="painel" id="p-conversor" role="tabpanel" aria-labelledby="aba-conversor">
+    <span class="rotulo">Modelo conceitual → modelo lógico</span>
+    <h1 class="titulo">Da <em>cardinalidade</em> ao <em>CREATE TABLE</em></h1>
+    <p class="lead">Escolha um cenário e mude as cardinalidades. A página mostra a regra da apostila para aquele caso, as tabelas resultantes e o script MySQL, junto com o que o banco consegue garantir e o que fica a cargo da aplicação.</p>
+
+    <div class="grade">
+      <div class="col">
+        <div class="cartao">
+          <h2>1. Cenário</h2>
+          <div class="chips" id="cenarios"></div>
+          <div class="campos" id="campos"></div>
+          <label class="marcar" id="marcarAttr"><input type="checkbox" id="temAttr"> <span>O relacionamento tem atributo: <code id="nomeAttr"></code></span></label>
+        </div>
+
+        <div class="cartao">
+          <h2>2. Cardinalidades</h2>
+          <div id="diagrama"></div>
+          <div class="lados" id="lados"></div>
+          <ul class="leitura" id="leitura"></ul>
+          <p class="dica">A cardinalidade fica escrita <b>junto da entidade que ela conta</b>. O <code>(1,1)</code> ao lado de uma entidade responde: “uma ocorrência <i>do outro lado</i> se liga a quantas desta?”. Por isso se diz que as cardinalidades ficam “invertidas” (apostila, p. 7). Toque em uma cardinalidade no diagrama para ver a frase correspondente.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="cartao">
+          <h2>3. Regra de implementação</h2>
+          <p><span class="tipo-rel">Relacionamento <b id="tipoRel">1:n</b></span></p>
+          <div class="tabela-wrap" style="overflow-x:auto">
+            <table class="heuser" id="heuser"></table>
+          </div>
+          <div class="legenda-h"><span><b class="m-ok">✔</b> alternativa preferida</span><span><b class="m-pode">±</b> pode ser usada</span><span><b class="m-nao">✘</b> não usar</span></div>
+          <p class="dica">Tabela da apostila (p. 34, a partir de Heuser). Toque em uma linha para carregar aquelas cardinalidades.</p>
+        </div>
+
+        <div class="cartao">
+          <h2>4. Resultado</h2>
+          <div class="alts" id="alts"></div>
+          <div id="resultado"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OUTROS CASOS ============ -->
+  <section class="painel" id="p-casos" role="tabpanel" aria-labelledby="aba-casos" hidden>
+    <span class="rotulo">Além do binário entre duas entidades</span>
+    <h1 class="titulo">Os casos <em>especiais</em></h1>
+    <p class="lead">Ternário, entidade associativa, generalização, atributo multivalorado e identificador externo. Os autorrelacionamentos seguem a tabela de regras e estão na primeira aba, nos cenários <b>Empregado gerencia</b> e <b>Animal predação</b>.</p>
+    <div class="cartao">
+      <div class="chips" id="casosChips"></div>
+    </div>
+    <div id="caso"></div>
+  </section>
+
+  <!-- ============ TREINO ============ -->
+  <section class="painel" id="p-treino" role="tabpanel" aria-labelledby="aba-treino" hidden>
+    <span class="rotulo">Leia a regra de negócio, escreva a cardinalidade</span>
+    <h1 class="titulo">Treino de <em>cardinalidade</em></h1>
+    <p class="lead">Cada frase descreve um relacionamento. Marque a cardinalidade que vai escrita ao lado de cada entidade e confira. O erro mais comum é trocar os lados.</p>
+    <div class="cartao" id="treino"></div>
+  </section>
+
+  <p class="rodape">Material da disciplina Modelagem de Banco de Dados — Prof. Cid Andrade (UNICID). Regras de conversão: Apostila de MBD, p. 30–36. Script para MySQL 8.0.16+.</p>
+</main>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Utilidades
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function slug(s) {
+  return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "x";
+}
+function plural(s) {
+  const p = String(s).trim().split(/\s+/);
+  const w = p[0];
+  let r;
+  if (/ão$/i.test(w)) r = w.replace(/ão$/i, "ões");
+  else if (/[aeiouáéíóúâêô]$/i.test(w)) r = w + "s";
+  else if (/[rzs]$/i.test(w)) r = w + "es";
+  else if (/l$/i.test(w)) r = w.replace(/l$/i, "is");
+  else if (/m$/i.test(w)) r = w.replace(/m$/i, "ns");
+  else r = w + "s";
+  p[0] = r;
+  return p.join(" ");
+}
+
+const KW = new Set(("CREATE TABLE DROP IF EXISTS NOT NULL PRIMARY KEY UNIQUE CHECK FOREIGN REFERENCES ON DELETE UPDATE " +
+  "CASCADE RESTRICT ENGINE CONSTRAINT AUTO_INCREMENT DEFAULT AND OR IN IS").split(" "));
+const FN = new Set("INT VARCHAR CHAR DATE DATETIME DECIMAL TINYINT BOOLEAN INNODB ENUM SMALLINT".split(" "));
+
+function realcarLinha(linha) {
+  const re = /(--.*$)|('(?:[^']|'')*')|(\b\d+\b)|([A-Za-z_][A-Za-z0-9_]*)|([(),;=.*+<>])/g;
+  let out = "", ult = 0, m;
+  while ((m = re.exec(linha))) {
+    out += esc(linha.slice(ult, m.index));
+    const [t, com, str, num, pal, pont] = m;
+    if (com) out += `<span class="tk-com">${esc(com)}</span>`;
+    else if (str) out += `<span class="tk-str">${esc(str)}</span>`;
+    else if (num) out += `<span class="tk-num">${num}</span>`;
+    else if (pal) {
+      const up = pal.toUpperCase();
+      if (KW.has(up)) out += `<span class="tk-kw">${pal}</span>`;
+      else if (FN.has(up)) out += `<span class="tk-fn">${pal}</span>`;
+      else out += esc(pal);
+    } else if (pont) out += `<span class="tk-pont">${esc(pont)}</span>`;
+    ult = m.index + t.length;
+  }
+  return out + esc(linha.slice(ult));
+}
+
+/* Guarda as linhas do último SQL de cada bloco para acender o que mudou. */
+const sqlAnterior = {};
+function blocoCodigo(sql, chave) {
+  const antes = new Set(sqlAnterior[chave] || []);
+  const primeiro = !(chave in sqlAnterior);
+  const linhas = sql.split("\n");
+  sqlAnterior[chave] = linhas;
+  const html = linhas.map((l) => {
+    const nova = !primeiro && l.trim() && !antes.has(l);
+    return `<span class="ln${nova ? " nova" : ""}">${realcarLinha(l) || " "}</span>`;
+  }).join("");
+  return `<div class="codigo"><pre><code>${html}</code></pre></div>`;
+}
+
+function blocoSQL(sql, chave, arquivo) {
+  return `<div class="bloco-titulo"><h3>Script MySQL</h3><div class="acoes">
+      <button class="btn-peq" type="button" data-copiar="${chave}">Copiar</button>
+      <button class="btn-peq" type="button" data-baixar="${chave}" data-arquivo="${esc(arquivo)}">⤓ .sql</button>
+    </div></div>${blocoCodigo(sql, chave)}`;
+}
+const sqlAtual = {};
+
+/* =====================================================================
+   Tabelas: modelo interno → esquema lógico (HTML) e DDL (MySQL)
+   tabela = { nome, cols:[{n,t,nn,ai,com}], pk:[], uks:[[]], fks:[{cols,ref,refCols,del,com}], checks:[{nome,expr,com}] }
+   ===================================================================== */
+function tabEntidade(e) {
+  return {
+    nome: e.tabela,
+    cols: [{ n: e.pk, t: "INT", nn: true, ai: true }, ...e.cols.map((c) => ({ n: c[0], t: c[1], nn: !!c[2] }))],
+    pk: [e.pk],
+    uks: e.cols.filter((c) => c[3]).map((c) => [c[0]]),
+    fks: [], checks: [],
+  };
+}
+
+function esquemaHTML(tabs) {
+  return `<div class="esquema">${tabs.map((t) => {
+    const fkCols = new Set(t.fks.flatMap((f) => f.cols));
+    const cols = t.cols.map((c) => {
+      let s = esc(c.n);
+      if (fkCols.has(c.n)) s = `<i>${s}</i>`;
+      if (t.pk.includes(c.n)) s = `<u>${s}</u>`;
+      if (!c.nn) s += `<span class="op">°</span>`;
+      return s;
+    }).join(", ");
+    const refs = t.fks.map((f) => `<span class="ref">${esc(f.cols.join(", "))} referencia ${esc(f.ref)}</span>`).join("");
+    const uks = t.uks.map((u) => `<span class="ref">${esc(u.join(", "))} é única (chave alternativa)</span>`).join("");
+    return `<div><b>${esc(t.nome)}</b> (${cols})${refs}${uks}</div>`;
+  }).join("")}</div>
+  <p class="leg-esq"><u>sublinhado</u> = chave primária · <span style="color:var(--verde);font-weight:700">verde</span> = chave estrangeira · ° = opcional (aceita NULL)</p>`;
+}
+
+function ddlTabela(t) {
+  const wn = Math.max(...t.cols.map((c) => c.n.length));
+  const wt = Math.max(...t.cols.map((c) => c.t.length));
+  const itens = [];
+  t.cols.forEach((c) => {
+    itens.push({ s: `${c.n.padEnd(wn)}  ${c.t.padEnd(wt)}  ${c.nn ? "NOT NULL" : "NULL"}${c.ai ? " AUTO_INCREMENT" : ""}`, com: c.com });
+  });
+  itens.push({ s: `CONSTRAINT pk_${t.nome} PRIMARY KEY (${t.pk.join(", ")})`, com: t.pkCom });
+  t.uks.forEach((u) => itens.push({ s: `CONSTRAINT uk_${t.nome}_${u.join("_")} UNIQUE (${u.join(", ")})`, com: t.ukCom && t.ukCom[u.join(",")] }));
+  t.fks.forEach((f) => {
+    const nome = `fk_${t.nome}_${f.cols.join("_")}`.slice(0, 64);
+    itens.push({ s: `CONSTRAINT ${nome} FOREIGN KEY (${f.cols.join(", ")}) REFERENCES ${f.ref} (${f.refCols.join(", ")})${f.del ? " ON DELETE " + f.del : ""}`, com: f.com });
+  });
+  t.checks.forEach((k) => itens.push({ s: `CONSTRAINT ${k.nome} CHECK (${k.expr})`, com: k.com }));
+  const linhas = itens.map((it, i) => {
+    const virg = i < itens.length - 1 ? "," : "";
+    return `  ${it.s}${virg}${it.com ? "  -- " + it.com : ""}`;
+  });
+  return `CREATE TABLE ${t.nome} (\n${linhas.join("\n")}\n) ENGINE = InnoDB;`;
+}
+
+function script(titulo, tabs) {
+  const cab = titulo.map((l) => "-- " + l).join("\n");
+  const drops = [...tabs].reverse().map((t) => `DROP TABLE IF EXISTS ${t.nome};`).join("\n");
+  return `${cab}\n\n${drops}\n\n${tabs.map(ddlTabela).join("\n\n")}\n`;
+}
+
+function listaGarantias(gs) {
+  return `<ul class="garantias">${gs.map((g) => `<li><span class="${g.ok ? "m-ok" : "m-nao"}">${g.ok ? "✔" : "✘"}</span><span>${g.txt}<small>${g.como}</small></span></li>`).join("")}</ul>`;
+}
+
+/* =====================================================================
+   Cardinalidades e a tabela de regras (apostila p. 34)
+   ===================================================================== */
+const CARD = {
+  "01": { min: 0, max: 1, txt: "(0,1)" },
+  "11": { min: 1, max: 1, txt: "(1,1)" },
+  "0n": { min: 0, max: "n", txt: "(0,n)" },
+  "1n": { min: 1, max: "n", txt: "(1,n)" },
+};
+const ORDEM = ["01", "11", "0n", "1n"];
+const ALT_NOMES = ["Tabela própria", "Adição de coluna", "Fusão de tabelas"];
+const MARCA = { "✔": "m-ok", "±": "m-pode", "✘": "m-nao" };
+
+const HEUSER = [
+  { g: "1:1", a: "01", b: "01", r: ["±", "✔", "✘"] },
+  { g: "1:1", a: "01", b: "11", r: ["✘", "±", "✔"] },
+  { g: "1:1", a: "11", b: "11", r: ["✘", "±", "✔"] },
+  { g: "1:n", a: "01", b: "0n", r: ["±", "✔", "✘"] },
+  { g: "1:n", a: "01", b: "1n", r: ["±", "✔", "✘"] },
+  { g: "1:n", a: "11", b: "0n", r: ["✘", "✔", "✘"] },
+  { g: "1:n", a: "11", b: "1n", r: ["✘", "✔", "✘"] },
+  { g: "n:n", a: "0n", b: "0n", r: ["✔", "✘", "✘"] },
+  { g: "n:n", a: "0n", b: "1n", r: ["✔", "✘", "✘"] },
+  { g: "n:n", a: "1n", b: "1n", r: ["✔", "✘", "✘"] },
+];
+function linhaHeuser(ca, cb) {
+  return HEUSER.findIndex((l) => (l.a === ca && l.b === cb) || (l.a === cb && l.b === ca));
+}
+function quant(c, sing, pl) {
+  return {
+    "01": `no máximo 1 ${sing} (0 ou 1)`,
+    "11": `exatamente 1 ${sing}`,
+    "0n": `0 ou mais ${pl}`,
+    "1n": `1 ou mais ${pl}`,
+  }[c];
+}
+
+/* =====================================================================
+   Cenários do relacionamento binário
+   cols: [nome, tipo, obrigatório, único]
+   ca = cardinalidade escrita ao lado de A (quantos A para cada B)
+   cb = cardinalidade escrita ao lado de B (quantos B para cada A)
+   ===================================================================== */
+const CENARIOS = [
+  {
+    id: "lotacao", rotulo: "Departamento × Funcionário", rel: "lotação", ca: "11", cb: "0n",
+    A: { nome: "Departamento", cols: [["nome", "VARCHAR(60)", 1, 1], ["sigla", "CHAR(4)", 1, 0]] },
+    B: { nome: "Funcionário", cols: [["nome", "VARCHAR(80)", 1, 0], ["salario", "DECIMAL(10,2)", 1, 0]] },
+    attr: ["data_inicio", "DATE"],
+  },
+  {
+    id: "westeros", rotulo: "Casa × Personagem", rel: "abriga", ca: "11", cb: "0n",
+    A: { nome: "Casa", cols: [["nome", "VARCHAR(50)", 1, 1], ["lema", "VARCHAR(100)", 1, 0]] },
+    B: { nome: "Personagem", cols: [["nome", "VARCHAR(80)", 1, 0], ["titulo", "VARCHAR(80)", 0, 0]] },
+    attr: ["desde", "DATE"],
+  },
+  {
+    id: "cnh", rotulo: "Pessoa × CNH", rel: "habilita", ca: "11", cb: "01",
+    A: { nome: "Pessoa", cols: [["nome", "VARCHAR(80)", 1, 0], ["cpf", "CHAR(11)", 1, 1]] },
+    B: { nome: "CNH", pl: "CNHs", cols: [["numero", "CHAR(11)", 1, 1], ["categoria", "VARCHAR(2)", 1, 0], ["validade", "DATE", 1, 0]] },
+    attr: ["data_emissao", "DATE"],
+  },
+  {
+    id: "mesa", rotulo: "Empregado × Mesa", rel: "ocupa", ca: "01", cb: "01",
+    A: { nome: "Empregado", cols: [["nome", "VARCHAR(80)", 1, 0]] },
+    B: { nome: "Mesa", cols: [["andar", "TINYINT", 1, 0], ["ramal", "CHAR(4)", 0, 0]] },
+    attr: ["desde", "DATE"],
+  },
+  {
+    id: "conferencia", rotulo: "Conferência × Comissão", rel: "organiza", ca: "11", cb: "11",
+    A: { nome: "Conferência", cols: [["nome", "VARCHAR(80)", 1, 1], ["data_inicio", "DATE", 1, 0]] },
+    B: { nome: "Comissão", cols: [["nome", "VARCHAR(80)", 1, 0], ["email", "VARCHAR(80)", 1, 0]] },
+    attr: ["data_instalacao", "DATE"],
+  },
+  {
+    id: "time", rotulo: "Time × Jogador", rel: "contrata", ca: "01", cb: "1n",
+    A: { nome: "Time", cols: [["nome", "VARCHAR(60)", 1, 1], ["cidade", "VARCHAR(60)", 1, 0]] },
+    B: { nome: "Jogador", cols: [["nome", "VARCHAR(80)", 1, 0], ["posicao", "VARCHAR(20)", 1, 0]] },
+    attr: ["fim_contrato", "DATE"],
+  },
+  {
+    id: "matricula", rotulo: "Aluno × Disciplina", rel: "cursa", ca: "0n", cb: "1n",
+    A: { nome: "Aluno", cols: [["nome", "VARCHAR(80)", 1, 0], ["ra", "CHAR(8)", 1, 1]] },
+    B: { nome: "Disciplina", cols: [["nome", "VARCHAR(80)", 1, 1], ["carga_horaria", "SMALLINT", 1, 0]] },
+    attr: ["nota", "DECIMAL(4,2)"],
+  },
+  {
+    id: "gerencia", rotulo: "Empregado gerencia", auto: true, rel: "gerencia", ca: "01", cb: "0n",
+    A: { nome: "Empregado", cols: [["nome", "VARCHAR(80)", 1, 0], ["cargo", "VARCHAR(40)", 1, 0]] },
+    papelA: "gerente", papelB: "subordinado",
+    attr: ["desde", "DATE"],
+  },
+  {
+    id: "predacao", rotulo: "Animal predação", auto: true, rel: "predação", ca: "0n", cb: "0n",
+    A: { nome: "Animal", cols: [["nome", "VARCHAR(60)", 1, 1], ["habitat", "VARCHAR(40)", 0, 0]] },
+    papelA: "predador", papelB: "presa",
+    attr: ["frequencia", "VARCHAR(20)"],
+  },
+];
+
+const st = { cen: CENARIOS[0], nomes: {}, ca: "11", cb: "0n", attr: false, alt: null, foco: null };
+
+function carregarCenario(c, { manterCard = false } = {}) {
+  st.cen = c;
+  st.nomes = { A: c.A.nome, B: c.auto ? c.A.nome : c.B.nome, rel: c.rel, papelA: c.papelA || "", papelB: c.papelB || "" };
+  if (!manterCard) { st.ca = c.ca; st.cb = c.cb; }
+  st.alt = null; st.foco = null;
+}
+
+/* Monta o "modelo" com os nomes atuais (os campos podem ser editados) */
+function modelo() {
+  const c = st.cen;
+  const mk = (base, nome) => {
+    const t = slug(nome);
+    return { nome, pl: nome === base.nome && base.pl ? base.pl : plural(nome), tabela: t, pk: "id_" + t, cols: base.cols };
+  };
+  const A = mk(c.A, st.nomes.A);
+  const B = c.auto ? A : mk(c.B, st.nomes.B);
+  const auto = !!c.auto;
+  const pA = auto ? st.nomes.papelA || "papel_a" : null;
+  const pB = auto ? st.nomes.papelB || "papel_b" : null;
+  // como cada lado é chamado nas frases e qual nome tem a FK que aponta para ele
+  const ladoA = auto ? { sing: pA, pl: plural(pA), fk: "id_" + slug(pA), ent: A } : { sing: A.nome, pl: A.pl, fk: A.pk, ent: A };
+  const ladoB = auto ? { sing: pB, pl: plural(pB), fk: "id_" + slug(pB), ent: B } : { sing: B.nome, pl: B.pl, fk: B.pk, ent: B };
+  if (!auto && ladoA.fk === ladoB.fk) ladoB.fk += "_2";
+  return {
+    A, B, auto, ladoA, ladoB, ca: st.ca, cb: st.cb,
+    rel: st.nomes.rel, relTabela: slug(st.nomes.rel),
+    attr: st.attr ? { n: c.attr[0], t: c.attr[1] } : null,
+  };
+}
+
+/* ---------------------------------------------------------------------
+   As três alternativas. Cada uma devolve
+   { tabelas, garantias, notas } ou { impossivel: "texto" }
+   --------------------------------------------------------------------- */
+
+/* Frases das quatro restrições: para cada lado, o mínimo e o máximo */
+function restricoes(m) {
+  // "cada <sujeito> se liga a <card> <objeto>": a cardinalidade escrita ao lado do objeto
+  return [
+    { suj: m.ladoB, obj: m.ladoA, c: CARD[m.ca], cod: m.ca },
+    { suj: m.ladoA, obj: m.ladoB, c: CARD[m.cb], cod: m.cb },
+  ];
+}
+
+function altTabelaPropria(m) {
+  const MA = CARD[m.ca].max, MB = CARD[m.cb].max;
+  const tabs = m.auto ? [tabEntidade(m.A)] : [tabEntidade(m.A), tabEntidade(m.B)];
+  let nomeR = m.relTabela;
+  if (tabs.some((t) => t.nome === nomeR)) nomeR += "_rel";
+  const fa = m.ladoA.fk, fb = m.ladoB.fk;
+  const R = { nome: nomeR, cols: [], pk: [], uks: [], fks: [], checks: [], ukCom: {} };
+  R.cols.push({ n: fa, t: "INT", nn: true, com: m.auto ? `o ${m.ladoA.sing}` : null });
+  R.cols.push({ n: fb, t: "INT", nn: true, com: m.auto ? `o ${m.ladoB.sing}` : null });
+  if (m.attr) R.cols.push({ n: m.attr.n, t: m.attr.t, nn: true, com: "atributo do relacionamento" });
+  if (MA === "n" && MB === "n") {
+    R.pk = [fa, fb]; R.pkCom = "n:n: o par não se repete";
+  } else if (MA === 1) {
+    R.pk = [fb]; R.pkCom = `${CARD[m.ca].txt}: cada ${m.ladoB.sing} aparece uma vez só`;
+    if (MB === 1) { R.uks.push([fa]); R.ukCom[fa] = `${CARD[m.cb].txt}: cada ${m.ladoA.sing} aparece uma vez só`; }
+  } else {
+    R.pk = [fa]; R.pkCom = `${CARD[m.cb].txt}: cada ${m.ladoA.sing} aparece uma vez só`;
+  }
+  R.fks.push({ cols: [fa], ref: m.A.tabela, refCols: [m.A.pk] });
+  R.fks.push({ cols: [fb], ref: m.B.tabela, refCols: [m.B.pk] });
+  tabs.push(R);
+
+  const garantias = [];
+  restricoes(m).forEach((r) => {
+    if (r.c.max === 1) garantias.push({ ok: true, txt: `Cada ${r.suj.sing} se liga a no máximo 1 ${r.obj.sing}.`, como: `${r.suj.fk} é chave (primária ou única) em ${R.nome}: não aparece duas vezes.` });
+    else garantias.push({ ok: true, txt: `Cada ${r.suj.sing} pode se ligar a vários ${r.obj.pl}.`, como: `${r.suj.fk} se repete em ${R.nome}, uma linha por ${r.obj.sing}.` });
+    if (r.c.min === 1) garantias.push({ ok: false, txt: `Cada ${r.suj.sing} se liga a pelo menos 1 ${r.obj.sing}.`, como: `Nada impede cadastrar um ${r.suj.sing} sem nenhuma linha em ${R.nome}. Só um trigger ou a aplicação garantem esse mínimo.` });
+    else garantias.push({ ok: true, txt: `Um ${r.suj.sing} pode existir sem ${r.obj.sing}.`, como: `Basta não haver linha dele em ${R.nome}.` });
+  });
+  return { tabelas: tabs, garantias };
+}
+
+function altAdicaoColuna(m) {
+  const MA = CARD[m.ca].max, MB = CARD[m.cb].max;
+  if (MA === "n" && MB === "n") {
+    return { impossivel: `Uma coluna guarda um valor só. No n:n, cada ${m.ladoA.sing} precisaria guardar vários ids de ${m.ladoB.pl}, e cada ${m.ladoB.sing} vários ids de ${m.ladoA.pl}. Repetir a linha para cada valor duplicaria todos os outros dados. Por isso, todo n:n vira tabela própria.` };
+  }
+  // host = lado que recebe a coluna: aquele que se liga a no máximo 1 do outro
+  let host;
+  if (MA === 1 && MB === 1) host = CARD[m.ca].min === 1 ? "B" : CARD[m.cb].min === 1 ? "A" : "B";
+  else host = MA === 1 ? "B" : "A";
+  const H = host === "B" ? m.ladoB : m.ladoA;        // quem recebe a coluna
+  const O = host === "B" ? m.ladoA : m.ladoB;        // para quem a coluna aponta
+  const cO = host === "B" ? m.ca : m.cb;             // cardinalidade ao lado de O: quantos O por H
+  const cH = host === "B" ? m.cb : m.ca;             // quantos H por O
+  const obrig = CARD[cO].min === 1;
+  const unico = CARD[cH].max === 1;
+
+  const tabs = [];
+  const tO = tabEntidade(O.ent);
+  const tH = m.auto ? tO : tabEntidade(H.ent);
+  const col = { n: O.fk, t: "INT", nn: obrig, com: `${CARD[cO].txt} ao lado de ${O.sing}: ${obrig ? "obrigatória" : "opcional"}` };
+  tH.cols.push(col);
+  if (m.attr) tH.cols.push({ n: m.attr.n, t: m.attr.t, nn: obrig, com: "atributo do relacionamento" });
+  tH.ukCom = {};
+  if (unico) { tH.uks.push([O.fk]); tH.ukCom[O.fk] = `${CARD[cH].txt}: um ${O.sing} para no máximo 1 ${H.sing}`; }
+  tH.fks.push({ cols: [O.fk], ref: O.ent.tabela, refCols: [O.ent.pk], com: m.auto ? "autorrelacionamento" : null });
+  if (!obrig && m.attr) {
+    tH.checks.push({ nome: `ck_${tH.nome}_${m.attr.n}`, expr: `${O.fk} IS NOT NULL OR ${m.attr.n} IS NULL`, com: `sem ${O.sing}, sem ${m.attr.n}` });
+  }
+  if (m.auto) tabs.push(tH);
+  else tabs.push(tO, tH);
+
+  const garantias = [];
+  // direção H → O (coluna em H)
+  garantias.push({ ok: true, txt: `Cada ${H.sing} se liga a no máximo 1 ${O.sing}.`, como: `A coluna ${O.fk} guarda um valor só.` });
+  if (obrig) garantias.push({ ok: true, txt: `Cada ${H.sing} se liga a pelo menos 1 ${O.sing}.`, como: `${O.fk} é NOT NULL.` });
+  else garantias.push({ ok: true, txt: `Um ${H.sing} pode existir sem ${O.sing}.`, como: `${O.fk} aceita NULL.` });
+  // direção O → H
+  if (unico) garantias.push({ ok: true, txt: `Cada ${O.sing} se liga a no máximo 1 ${H.sing}.`, como: `UNIQUE em ${O.fk}: o mesmo valor não aparece em duas linhas de ${tH.nome}.` });
+  else garantias.push({ ok: true, txt: `Cada ${O.sing} pode se ligar a vários ${H.pl}.`, como: `O mesmo valor de ${O.fk} pode aparecer em várias linhas de ${tH.nome}.` });
+  if (CARD[cH].min === 1) garantias.push({ ok: false, txt: `Cada ${O.sing} se liga a pelo menos 1 ${H.sing}.`, como: `A FK aponta de ${tH.nome} para ${O.ent.tabela}; nada obriga um ${O.sing} a ser referenciado. Só um trigger ou a aplicação garantem esse mínimo.` });
+  else garantias.push({ ok: true, txt: `Um ${O.sing} pode existir sem ${H.sing}.`, como: `Basta nenhuma linha de ${tH.nome} apontar para ele.` });
+
+  const notas = [];
+  if (MA === 1 && MB === 1) {
+    notas.push(`No 1:1, a coluna podia ir para qualquer um dos lados. Ela foi para <b>${esc(tH.nome)}</b> porque ${obrig ? `ali ela é obrigatória (<code>NOT NULL</code>), sem nenhum NULL` : "nenhum dos lados é obrigatório: ela será opcional em qualquer um"}. O <code>UNIQUE</code> é o que faz a relação ser 1:1, e não 1:n.`);
+  }
+  if (m.auto) notas.push(`No autorrelacionamento, a chave estrangeira aponta para a <b>própria tabela</b>. O nome da coluna vem do papel (<code>${esc(O.fk)}</code>), não da entidade, porque <code>${esc(m.A.pk)}</code> já é a chave primária.`);
+  return { tabelas: tabs, garantias, notas };
+}
+
+function altFusao(m) {
+  const MA = CARD[m.ca].max, MB = CARD[m.cb].max;
+  if (m.auto) return { impossivel: "No autorrelacionamento só existe uma tabela: não há o que fundir." };
+  if (MA === "n" || MB === "n") {
+    const um = MA === 1 ? m.ladoA : m.ladoB, muitos = MA === 1 ? m.ladoB : m.ladoA;
+    if (MA === "n" && MB === "n") return { impossivel: `Fundir ${m.A.nome} e ${m.B.nome} numa tabela só obrigaria a repetir os dados dos dois lados, uma linha por par. É redundância, e cada alteração teria de mexer em várias linhas.` };
+    return { impossivel: `A tabela fundida teria uma linha por ${muitos.sing}, e os dados do ${um.sing} se repetiriam em cada uma delas. Mudar o nome de um ${um.sing} exigiria alterar várias linhas (anomalia de atualização). Além disso, um ${um.sing} sem ${muitos.pl} não teria onde ficar.` };
+  }
+  if (m.ca === "01" && m.cb === "01") {
+    return { impossivel: `Com (0,1) dos dois lados, existem ${m.A.pl} sem ${m.B.nome} e ${m.B.pl} sem ${m.A.nome}. Na tabela fundida, algumas linhas não teriam o id de ${m.A.nome} e outras não teriam o id de ${m.B.nome}. Nenhuma das duas colunas pode ser chave primária, porque chave primária não aceita NULL.` };
+  }
+  // P = lado que existe sozinho (a cardinalidade ao lado do outro é 0,1) ou A, se ambos (1,1)
+  const pEhB = m.ca === "01";                 // cada B tem 0 ou 1 A → B pode existir sem A
+  const P = pEhB ? m.B : m.A, O = pEhB ? m.A : m.B;
+  const opcional = m.ca === "01" || m.cb === "01";
+  const t = tabEntidade(P);
+  const nomesP = new Set(t.cols.map((c) => c.n));
+  const grupo = [];
+  O.cols.forEach(([n, tipo, nn, uk]) => {
+    const nome = nomesP.has(n) ? `${slug(O.nome)}_${n}` : n;
+    t.cols.push({ n: nome, t: tipo, nn: nn && !opcional, com: `vem de ${O.nome}` });
+    if (uk) t.uks.push([nome]);
+    if (nn) grupo.push(nome);
+  });
+  if (m.attr) { t.cols.push({ n: m.attr.n, t: m.attr.t, nn: !opcional, com: "atributo do relacionamento" }); grupo.push(m.attr.n); }
+  if (opcional && grupo.length > 1) {
+    t.checks.push({ nome: `ck_${t.nome}_${slug(O.nome)}`, expr: grupo.slice(1).map((g) => `(${grupo[0]} IS NULL) = (${g} IS NULL)`).join(" AND "), com: `dados de ${O.nome}: todos ou nenhum` });
+  }
+  const garantias = [
+    { ok: true, txt: `Cada ${P.nome} se liga a no máximo 1 ${O.nome}, e vice-versa.`, como: "Os dois ficam na mesma linha." },
+    opcional
+      ? { ok: true, txt: `Um ${P.nome} pode existir sem ${O.nome}.`, como: `As colunas de ${O.nome} ficam NULL${grupo.length > 1 ? "; o CHECK impede que fiquem pela metade" : ""}.` }
+      : { ok: true, txt: `Cada ${P.nome} tem exatamente 1 ${O.nome}.`, como: `As colunas de ${O.nome} são NOT NULL.` },
+    { ok: true, txt: `Cada ${O.nome} tem exatamente 1 ${P.nome}.`, como: `Um ${O.nome} só existe dentro de uma linha de ${P.nome}.` },
+  ];
+  const notas = [`A tabela <b>${esc(O.ent ? O.ent.tabela : O.tabela)}</b> deixa de existir e o <code>id_${esc(O.tabela)}</code> também, porque a linha já é identificada por <code>${esc(P.pk)}</code>. Consultar os dois juntos não exige junção.`];
+  return { tabelas: [t], garantias, notas };
+}
+
+const POR_QUE = {
+  0: {
+    "✔": "No n:n, a tabela própria é a <b>única</b> saída. A chave primária é o par de chaves estrangeiras.",
+    "±": "Pode ser usada: evita a coluna opcional (com NULL) na tabela da entidade, ao custo de uma tabela a mais e de uma junção em toda consulta.",
+    "✘": "Não usar: com (1,1) de um lado, a coluna na tabela da entidade é obrigatória e não sobra nenhum NULL para evitar. A tabela própria só acrescentaria uma junção e <b>perderia</b> a obrigatoriedade que o <code>NOT NULL</code> garantia.",
+  },
+  1: {
+    "✔": "A chave estrangeira entra na tabela do lado que se liga a <b>no máximo 1</b> do outro. Sem tabela extra e sem junção a mais.",
+    "±": "Funciona, mas a fusão é melhor aqui: os dois lados andam sempre juntos e cabem numa linha só.",
+    "✘": "Impossível.",
+  },
+  2: {
+    "✔": "Os dois lados andam juntos (ao menos um é (1,1)), então cabem numa linha só: sem junção e sem chave primária a mais.",
+    "±": "",
+    "✘": "Não usar.",
+  },
+};
+
+/* =====================================================================
+   Renderização do conversor
+   ===================================================================== */
+function renderCenarios() {
+  $("#cenarios").innerHTML = CENARIOS.map((c) =>
+    `<button class="chip" type="button" data-cen="${c.id}" aria-pressed="${c === st.cen}">${esc(c.rotulo)}${c.auto ? " <small>(auto)</small>" : ""}</button>`).join("");
+  const c = st.cen;
+  const campo = (k, rot) => `<div class="campo"><label for="f-${k}">${rot}</label><input id="f-${k}" data-nome="${k}" value="${esc(st.nomes[k])}" autocomplete="off"></div>`;
+  $("#campos").innerHTML = c.auto
+    ? campo("A", "Entidade") + campo("rel", "Relacionamento") + campo("papelA", "Papel 1") + campo("papelB", "Papel 2")
+    : campo("A", "Entidade A") + campo("rel", "Relacionamento") + campo("B", "Entidade B");
+  $("#temAttr").checked = st.attr;
+  $("#nomeAttr").textContent = `${c.attr[0]} ${c.attr[1]}`;
+}
+
+function caixaCard(x, y, cod, lado) {
+  const foco = st.foco === lado ? " foco" : "";
+  return `<g class="card${foco}" data-lado="${lado}" tabindex="0" role="button" aria-label="Cardinalidade ${CARD[cod].txt}, mudar">
+    <rect x="${x - 30}" y="${y - 14}" width="60" height="26" rx="6"/>
+    <text x="${x}" y="${y + 5}" text-anchor="middle">${CARD[cod].txt}</text></g>`;
+}
+function caixaEnt(x, y, w, h, nome) {
+  const fs = nome.length > 13 ? 13 : 16;
+  return `<g class="ent"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/>
+    <text x="${x + w / 2}" y="${y + h / 2 + fs / 3}" text-anchor="middle" font-size="${fs}">${esc(nome)}</text></g>`;
+}
+function losango(cx, cy, w, h, nome) {
+  const fs = nome.length > 11 ? 12 : 14;
+  return `<g class="rel"><polygon points="${cx - w / 2},${cy} ${cx},${cy - h / 2} ${cx + w / 2},${cy} ${cx},${cy + h / 2}"/>
+    <text x="${cx}" y="${cy + 5}" text-anchor="middle" font-size="${fs}">${esc(nome)}</text></g>`;
+}
+
+function renderDiagrama(m) {
+  let svg;
+  const attr = (cx, cy) => m.attr
+    ? `<g class="attr"><line class="lig" x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - 26}"/><circle cx="${cx}" cy="${cy - 31}" r="5"/><text x="${cx + 10}" y="${cy - 27}">${esc(m.attr.n)}</text></g>` : "";
+  if (!m.auto) {
+    svg = `<svg class="der" viewBox="0 0 480 150" role="img" aria-label="Diagrama: ${esc(m.A.nome)} ${CARD[m.ca].txt}, ${esc(m.rel)}, ${CARD[m.cb].txt} ${esc(m.B.nome)}">
+      <line class="lig" x1="130" y1="95" x2="185" y2="95"/><line class="lig" x1="295" y1="95" x2="350" y2="95"/>
+      ${caixaEnt(4, 72, 126, 46, m.A.nome)}${caixaEnt(350, 72, 126, 46, m.B.nome)}
+      ${losango(240, 95, 110, 56, m.rel)}${attr(240, 67)}
+      ${caixaCard(162, 70, m.ca, "A")}${caixaCard(318, 70, m.cb, "B")}
+    </svg>`;
+  } else {
+    svg = `<svg class="der" viewBox="100 0 300 200" role="img" aria-label="Autorrelacionamento ${esc(m.rel)} em ${esc(m.A.nome)}">
+      ${caixaEnt(170, 8, 140, 46, m.A.nome)}
+      <line class="lig" x1="205" y1="54" x2="205" y2="139"/><line class="lig" x1="275" y1="54" x2="275" y2="139"/>
+      ${losango(240, 156, 120, 56, m.rel)}
+      <text class="papel" x="195" y="122" text-anchor="end">${esc(m.ladoA.sing)}</text>
+      <text class="papel" x="285" y="122">${esc(m.ladoB.sing)}</text>
+      ${caixaCard(160, 78, m.ca, "A")}${caixaCard(320, 78, m.cb, "B")}
+      ${m.attr ? `<g class="attr"><line class="lig" x1="300" y1="156" x2="330" y2="156"/><circle cx="335" cy="156" r="5"/><text x="345" y="160">${esc(m.attr.n)}</text></g>` : ""}
+    </svg>`;
+  }
+  $("#diagrama").innerHTML = svg;
+
+  const lado = (k, cod, ladoX, outro) => `<div class="lado"><h4>Ao lado de <b>${esc(ladoX.sing)}</b>: quantos ${esc(ladoX.pl)} para cada ${esc(outro.sing)}?</h4>
+    <div class="seg" role="group" aria-label="Cardinalidade ao lado de ${esc(ladoX.sing)}">${ORDEM.map((o) =>
+      `<button type="button" data-set="${k}" data-v="${o}" aria-pressed="${o === cod}">${CARD[o].txt}</button>`).join("")}</div></div>`;
+  $("#lados").innerHTML = lado("ca", m.ca, m.ladoA, m.ladoB) + lado("cb", m.cb, m.ladoB, m.ladoA);
+
+  $("#leitura").innerHTML = `
+    <li class="${st.foco === "A" ? "foco" : ""}"><code>${CARD[m.ca].txt}</code><span>Cada <b>${esc(m.ladoB.sing)}</b> se liga a <b>${esc(quant(m.ca, m.ladoA.sing, m.ladoA.pl))}</b>.</span></li>
+    <li class="${st.foco === "B" ? "foco" : ""}"><code>${CARD[m.cb].txt}</code><span>Cada <b>${esc(m.ladoA.sing)}</b> se liga a <b>${esc(quant(m.cb, m.ladoB.sing, m.ladoB.pl))}</b>.</span></li>`;
+}
+
+function renderHeuser(idx) {
+  let html = `<thead><tr><th>Cardinalidades</th><th>Tabela própria</th><th>Adição de coluna</th><th>Fusão</th></tr></thead><tbody>`;
+  let grupo = "";
+  HEUSER.forEach((l, i) => {
+    if (l.g !== grupo) { grupo = l.g; html += `<tr class="grupo"><td colspan="4">Relacionamentos ${grupo}</td></tr>`; }
+    html += `<tr class="linha${i === idx ? " atual" : ""}" data-linha="${i}" tabindex="0"><td>${CARD[l.a].txt} — ${CARD[l.b].txt}</td>${l.r.map((r) => `<td class="${MARCA[r]}">${r}</td>`).join("")}</tr>`;
+  });
+  $("#heuser").innerHTML = html + "</tbody>";
+}
+
+function renderConversor() {
+  const m = modelo();
+  renderDiagrama(m);
+  const idx = linhaHeuser(m.ca, m.cb);
+  const linha = HEUSER[idx];
+  $("#tipoRel").textContent = linha.g;
+  renderHeuser(idx);
+
+  if (st.alt === null) st.alt = linha.r.indexOf("✔");
+  const r = linha.r.map((x, i) => (m.auto && i === 2 ? "✘" : x));
+  $("#alts").innerHTML = ALT_NOMES.map((n, i) =>
+    `<button class="alt" type="button" data-alt="${i}" aria-pressed="${i === st.alt}"><b class="${MARCA[r[i]]}">${r[i]}</b><span>${n}</span></button>`).join("");
+
+  const res = [altTabelaPropria, altAdicaoColuna, altFusao][st.alt](m);
+  const marca = r[st.alt];
+  const classe = marca === "✔" ? "" : marca === "±" ? " pode" : " nao";
+  const rotulo = marca === "✔" ? "Alternativa preferida" : marca === "±" ? "Pode ser usada" : "Não usar";
+  let porque = res.impossivel ? res.impossivel : POR_QUE[st.alt][marca];
+  let html = `<div class="veredito${classe}"><strong>${ALT_NOMES[st.alt]} · ${rotulo}</strong><p>${porque}</p></div>`;
+
+  if (!res.impossivel) {
+    html += `<h3>Modelo lógico</h3>${esquemaHTML(res.tabelas)}`;
+    html += `<h3>O que o banco garante</h3>${listaGarantias(res.garantias)}`;
+    (res.notas || []).forEach((n) => { html += `<div class="nota verde"><strong class="tipo">Repare</strong><p>${n}</p></div>`; });
+    const titulo = [
+      `${m.auto ? "Autorrelacionamento" : "Relacionamento"} ${m.rel}: ${m.ladoA.sing} ${CARD[m.ca].txt} — ${CARD[m.cb].txt} ${m.ladoB.sing}`,
+      `Alternativa: ${ALT_NOMES[st.alt].toLowerCase()} (${rotulo.toLowerCase()})`,
+      "MySQL 8.0.16+",
+    ];
+    const sql = script(titulo, res.tabelas);
+    sqlAtual.conversor = sql;
+    html += blocoSQL(sql, "conversor", `${m.relTabela}_${["tabela", "coluna", "fusao"][st.alt]}.sql`);
+  } else {
+    html += `<div class="nota"><strong class="tipo">Sem script</strong><p>Escolha outra alternativa, ou mude as cardinalidades.</p></div>`;
+  }
+  $("#resultado").innerHTML = html;
+  salvarHash();
+}
+
+function salvarHash() {
+  try { history.replaceState(null, "", `#c=${st.cen.id}&a=${st.ca}&b=${st.cb}&alt=${st.alt}${st.attr ? "&at=1" : ""}`); } catch (e) { /* ignora */ }
+}
+function lerHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  const c = CENARIOS.find((x) => x.id === p.get("c"));
+  if (!c) return;
+  carregarCenario(c);
+  if (CARD[p.get("a")]) st.ca = p.get("a");
+  if (CARD[p.get("b")]) st.cb = p.get("b");
+  const alt = Number(p.get("alt"));
+  if ([0, 1, 2].includes(alt)) st.alt = alt;
+  st.attr = p.get("at") === "1";
+}
+
+/* ---------- eventos do conversor ---------- */
+$("#cenarios").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-cen]");
+  if (!b) return;
+  carregarCenario(CENARIOS.find((c) => c.id === b.dataset.cen));
+  renderCenarios(); renderConversor();
+});
+$("#campos").addEventListener("input", (ev) => {
+  const k = ev.target.dataset.nome;
+  if (!k) return;
+  st.nomes[k] = ev.target.value.trim() || "?";
+  if (st.cen.auto && k === "A") st.nomes.B = st.nomes.A;
+  renderConversor();
+});
+$("#temAttr").addEventListener("change", (ev) => { st.attr = ev.target.checked; renderConversor(); });
+$("#lados").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-set]");
+  if (!b) return;
+  st[b.dataset.set] = b.dataset.v;
+  st.alt = null; st.foco = b.dataset.set === "ca" ? "A" : "B";
+  renderConversor();
+});
+function cicloCard(lado) {
+  const k = lado === "A" ? "ca" : "cb";
+  st[k] = ORDEM[(ORDEM.indexOf(st[k]) + 1) % 4];
+  st.alt = null; st.foco = lado;
+  renderConversor();
+}
+$("#diagrama").addEventListener("click", (ev) => {
+  const g = ev.target.closest("[data-lado]");
+  if (g) cicloCard(g.dataset.lado);
+});
+$("#diagrama").addEventListener("keydown", (ev) => {
+  const g = ev.target.closest("[data-lado]");
+  if (g && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); cicloCard(g.dataset.lado); $(`[data-lado="${g.dataset.lado}"]`).focus(); }
+});
+function escolherLinha(tr) {
+  const l = HEUSER[Number(tr.dataset.linha)];
+  st.ca = l.a; st.cb = l.b; st.alt = null; st.foco = null;
+  renderConversor();
+}
+$("#heuser").addEventListener("click", (ev) => { const tr = ev.target.closest("[data-linha]"); if (tr) escolherLinha(tr); });
+$("#heuser").addEventListener("keydown", (ev) => {
+  const tr = ev.target.closest("[data-linha]");
+  if (tr && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); escolherLinha(tr); }
+});
+$("#alts").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-alt]");
+  if (!b) return;
+  st.alt = Number(b.dataset.alt);
+  renderConversor();
+});
+
+/* Copiar e baixar (servem aos dois painéis) */
+document.addEventListener("click", async (ev) => {
+  const c = ev.target.closest("[data-copiar]");
+  if (c) {
+    try { await navigator.clipboard.writeText(sqlAtual[c.dataset.copiar]); c.textContent = "Copiado ✔"; }
+    catch (e) { c.textContent = "Não copiou"; }
+    setTimeout(() => { c.textContent = "Copiar"; }, 1500);
+    return;
+  }
+  const d = ev.target.closest("[data-baixar]");
+  if (d) {
+    const blob = new Blob([sqlAtual[d.dataset.baixar]], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = d.dataset.arquivo;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+});
+
+/* =====================================================================
+   Outros casos
+   ===================================================================== */
+const ent = (nome, cols) => { const t = slug(nome); return { nome, tabela: t, pk: "id_" + t, cols }; };
+const PRODUTO = ent("Produto", [["nome", "VARCHAR(60)", 1, 1], ["preco", "DECIMAL(10,2)", 1, 0]]);
+const CIDADE = ent("Cidade", [["nome", "VARCHAR(60)", 1, 0], ["uf", "CHAR(2)", 1, 0]]);
+const DISTRIB = ent("Distribuidor", [["razao_social", "VARCHAR(80)", 1, 1]]);
+
+const casoSt = {
+  id: "ternario",
+  tern: { produto: "n", cidade: "n", distribuidor: "1" },
+  assoc: "data",
+  gen: { total: true, impl: "unica" },
+};
+
+const CASOS = [
+  { id: "ternario", rotulo: "Ternário", render: renderTernario },
+  { id: "associativa", rotulo: "Entidade associativa", render: renderAssociativa },
+  { id: "generalizacao", rotulo: "Generalização", render: renderGeneralizacao },
+  { id: "multivalorado", rotulo: "Atributo multivalorado", render: renderMultivalorado },
+  { id: "externo", rotulo: "Identificador externo", render: renderExterno },
+];
+
+function renderCasos() {
+  $("#casosChips").innerHTML = CASOS.map((c) =>
+    `<button class="chip" type="button" data-caso="${c.id}" aria-pressed="${c.id === casoSt.id}">${c.rotulo}</button>`).join("");
+  CASOS.find((c) => c.id === casoSt.id).render();
+}
+$("#casosChips").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-caso]");
+  if (!b) return;
+  casoSt.id = b.dataset.caso; renderCasos();
+});
+
+function seg(chave, valor, opcoes, classe = "") {
+  return `<div class="seg ${classe}" role="group">${opcoes.map(([v, rot]) =>
+    `<button type="button" data-caso-set="${chave}" data-v="${v}" aria-pressed="${String(v) === String(valor)}">${rot}</button>`).join("")}</div>`;
+}
+$("#caso").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-caso-set]");
+  if (!b) return;
+  const [grupo, campo] = b.dataset.casoSet.split(".");
+  const v = b.dataset.v;
+  if (campo) casoSt[grupo][campo] = v === "true" ? true : v === "false" ? false : v;
+  else casoSt[grupo] = v;
+  renderCasos();
+});
+
+function cartaoResultado(tabs, garantias, chave, arquivo, titulo, extra = "") {
+  sqlAtual[chave] = script(titulo, tabs);
+  return `<div class="cartao"><h2>Resultado</h2>
+    <h3>Modelo lógico</h3>${esquemaHTML(tabs)}
+    ${garantias ? `<h3>O que o banco garante</h3>${listaGarantias(garantias)}` : ""}
+    ${extra}
+    ${blocoSQL(sqlAtual[chave], chave, arquivo)}</div>`;
+}
+
+/* ---------- ternário ---------- */
+function renderTernario() {
+  const s = casoSt.tern;
+  const ents = { produto: PRODUTO, cidade: CIDADE, distribuidor: DISTRIB };
+  const ks = ["produto", "cidade", "distribuidor"];
+  const svg = `<svg class="der" viewBox="0 0 480 230" role="img" aria-label="Relacionamento ternário Distribuição">
+    <line class="lig" x1="130" y1="70" x2="190" y2="110"/><line class="lig" x1="350" y1="70" x2="290" y2="110"/><line class="lig" x1="240" y1="140" x2="240" y2="178"/>
+    ${caixaEnt(4, 40, 126, 46, "Produto")}${caixaEnt(350, 40, 126, 46, "Distribuidor")}${caixaEnt(177, 178, 126, 46, "Cidade")}
+    ${losango(240, 112, 120, 56, "distribuição")}
+    ${["produto", "distribuidor", "cidade"].map((k) => {
+      const pos = { produto: [150, 62], distribuidor: [330, 62], cidade: [262, 166] }[k];
+      return `<g class="card"><rect x="${pos[0] - 16}" y="${pos[1] - 14}" width="32" height="24" rx="6"/><text x="${pos[0]}" y="${pos[1] + 4}" text-anchor="middle">${s[k]}</text></g>`;
+    }).join("")}
+  </svg>`;
+  const ctrls = ks.map((k) => {
+    const outros = ks.filter((x) => x !== k).map((x) => ents[x].nome);
+    return `<div class="lado"><h4>Para cada par <b>(${outros.join(", ")})</b>, quantos <b>${plural(ents[k].nome)}</b>?</h4>${seg("tern." + k, s[k], [["1", "no máximo 1"], ["n", "vários (n)"]], "dois texto")}</div>`;
+  }).join("");
+
+  // chaves candidatas: cada entidade com máximo 1 é determinada pelas outras duas
+  const cands = ks.filter((k) => s[k] === "1").map((k) => ks.filter((x) => x !== k).map((x) => ents[x].pk));
+  const D = { nome: "distribuicao", cols: ks.map((k) => ({ n: ents[k].pk, t: "INT", nn: true })), pk: [], uks: [], fks: [], checks: [], ukCom: {} };
+  if (cands.length) {
+    D.pk = cands[0]; D.pkCom = "uma chave candidata (veja a explicação)";
+    cands.slice(1).forEach((c) => { D.uks.push(c); D.ukCom[c.join(",")] = "outra chave candidata"; });
+  } else { D.pk = ks.map((k) => ents[k].pk); D.pkCom = "tudo n: só o trio não se repete"; }
+  ks.forEach((k) => D.fks.push({ cols: [ents[k].pk], ref: ents[k].tabela, refCols: [ents[k].pk] }));
+  D.cols.push({ n: "data_inicio", t: "DATE", nn: true, com: "atributo do relacionamento" });
+  const tabs = [tabEntidade(PRODUTO), tabEntidade(CIDADE), tabEntidade(DISTRIB), D];
+
+  const frases = ks.map((k) => {
+    const outros = ks.filter((x) => x !== k);
+    return s[k] === "1"
+      ? { ok: true, txt: `Cada par (${outros.map((x) => ents[x].nome).join(", ")}) tem no máximo 1 ${ents[k].nome}.`, como: `(${outros.map((x) => ents[x].pk).join(", ")}) é chave: o par não se repete.` }
+      : { ok: true, txt: `Um par (${outros.map((x) => ents[x].nome).join(", ")}) pode ter vários ${plural(ents[k].nome)}.`, como: `O par pode se repetir, com ${ents[k].pk} diferente.` };
+  });
+  frases.push({ ok: false, txt: "Mínimos (0 ou 1) não aparecem no ternário.", como: "A apostila trata a cardinalidade do ternário só pelo máximo; uma participação obrigatória ficaria para um trigger ou para a aplicação." });
+
+  const explic = cands.length > 1
+    ? `<div class="nota"><strong class="tipo">Duas chaves candidatas</strong><p>Com mais de um “1”, há mais de um par que identifica a linha. Um vira a chave primária; os outros entram como <code>UNIQUE</code>.</p></div>` : "";
+
+  $("#caso").innerHTML = `<div class="grade"><div class="col"><div class="cartao">
+      <h2>Relacionamento ternário</h2>
+      <p>No ternário, a cardinalidade é lida <b>para cada par</b> das outras duas entidades (apostila, p. 9). Exemplo: “um produto, numa cidade, é vendido por quantos distribuidores?”</p>
+      ${svg}
+      <div class="lados" style="grid-template-columns:1fr">${ctrls}</div>
+      <h3>Como a apostila manda converter (p. 34–35)</h3>
+      <ol class="passos"><li><span>O relacionamento vira uma <b>entidade</b> (<i>Distribuição</i>), ligada por relacionamentos binários a Produto, Cidade e Distribuidor.</span></li>
+      <li><span>Aplicam-se as regras do binário: cada ligação é 1:n e vira uma chave estrangeira na tabela <code>distribuicao</code>.</span></li>
+      <li><span>A chave primária sai dos máximos: cada lado “no máximo 1” torna as outras duas colunas uma chave.</span></li></ol>
+    </div></div>
+    <div>${cartaoResultado(tabs, frases, "ternario", "distribuicao.sql", ["Relacionamento ternário: distribuição (produto, cidade, distribuidor)", `Máximos: produto ${s.produto}, cidade ${s.cidade}, distribuidor ${s.distribuidor}`, "MySQL 8.0.16+"], explic)}</div></div>`;
+}
+
+/* ---------- entidade associativa ---------- */
+function renderAssociativa() {
+  const v = casoSt.assoc;
+  const MED = ent("Médico", [["nome", "VARCHAR(80)", 1, 0], ["crm", "VARCHAR(10)", 1, 1]]);
+  const PAC = ent("Paciente", [["nome", "VARCHAR(80)", 1, 0], ["cpf", "CHAR(11)", 1, 1]]);
+  const REM = ent("Medicamento", [["nome", "VARCHAR(80)", 1, 1]]);
+  const tMed = tabEntidade(MED), tPac = tabEntidade(PAC), tRem = tabEntidade(REM);
+  let C, P, chaveC;
+  if (v === "par") {
+    chaveC = [MED.pk, PAC.pk];
+    C = { nome: "consulta", cols: [{ n: MED.pk, t: "INT", nn: true }, { n: PAC.pk, t: "INT", nn: true }, { n: "data_hora", t: "DATETIME", nn: true }], pk: chaveC, pkCom: "o par médico–paciente só uma vez", uks: [], fks: [], checks: [] };
+  } else if (v === "data") {
+    chaveC = [MED.pk, PAC.pk, "data_hora"];
+    C = { nome: "consulta", cols: [{ n: MED.pk, t: "INT", nn: true }, { n: PAC.pk, t: "INT", nn: true }, { n: "data_hora", t: "DATETIME", nn: true }], pk: chaveC, pkCom: "a data entra na chave: o par pode repetir", uks: [], fks: [], checks: [] };
+  } else {
+    chaveC = ["id_consulta"];
+    C = { nome: "consulta", cols: [{ n: "id_consulta", t: "INT", nn: true, ai: true, com: "chave própria (substituta)" }, { n: MED.pk, t: "INT", nn: true }, { n: PAC.pk, t: "INT", nn: true }, { n: "data_hora", t: "DATETIME", nn: true }], pk: chaveC, uks: [[MED.pk, "data_hora"]], ukCom: { [MED.pk + ",data_hora"]: "o médico não atende dois ao mesmo tempo" }, fks: [], checks: [] };
+  }
+  C.fks.push({ cols: [MED.pk], ref: MED.tabela, refCols: [MED.pk] }, { cols: [PAC.pk], ref: PAC.tabela, refCols: [PAC.pk] });
+  P = { nome: "prescricao", cols: [...chaveC.map((n) => ({ n, t: n === "data_hora" ? "DATETIME" : "INT", nn: true })), { n: REM.pk, t: "INT", nn: true }, { n: "posologia", t: "VARCHAR(120)", nn: true, com: "atributo do relacionamento" }],
+    pk: [...chaveC, REM.pk], pkCom: "a consulta inteira + o medicamento", uks: [], checks: [],
+    fks: [{ cols: chaveC, ref: "consulta", refCols: chaveC, com: chaveC.length > 1 ? "FK composta: aponta para a consulta" : null }, { cols: [REM.pk], ref: REM.tabela, refCols: [REM.pk] }] };
+  const tabs = [tMed, tPac, tRem, C, P];
+
+  const svg = `<svg class="der" viewBox="0 0 480 240" role="img" aria-label="Entidade associativa Consulta">
+    <rect x="4" y="10" width="472" height="96" rx="10" fill="none" stroke="var(--ameixa)" stroke-width="2"/>
+    <line class="lig" x1="124" y1="58" x2="185" y2="58"/><line class="lig" x1="295" y1="58" x2="356" y2="58"/>
+    ${caixaEnt(14, 35, 110, 46, "Médico")}${caixaEnt(356, 35, 110, 46, "Paciente")}${losango(240, 58, 110, 52, "consulta")}
+    <line class="lig" x1="240" y1="106" x2="240" y2="134"/>${losango(240, 158, 120, 48, "prescrição")}
+    <line class="lig" x1="240" y1="182" x2="240" y2="192"/>${caixaEnt(170, 192, 140, 44, "Medicamento")}
+    <text class="papel" x="250" y="125">(0,n)</text><text class="papel" x="230" y="190" text-anchor="end">(0,n)</text>
+  </svg>`;
+
+  $("#caso").innerHTML = `<div class="grade"><div class="col"><div class="cartao">
+      <h2>Entidade associativa</h2>
+      <p>Um relacionamento não se liga a outro relacionamento. Quando é preciso ligar a <i>consulta</i> aos medicamentos receitados, a consulta vira uma <b>entidade associativa</b>: o retângulo em volta do losango (apostila, p. 16–17).</p>
+      ${svg}
+      <h3>Um paciente pode voltar ao mesmo médico?</h3>
+      ${seg("assoc", v, [["par", "Não"], ["data", "Sim: data na chave"], ["id", "Sim: id próprio"]], "tres texto")}
+      <p class="dica">A pergunta decide a <b>chave</b> da consulta. E a chave da consulta é herdada pela prescrição.</p>
+    </div></div>
+    <div>${cartaoResultado(tabs, null, "associativa", "consulta_prescricao.sql", ["Entidade associativa: consulta (médico × paciente) + prescrição", "MySQL 8.0.16+"],
+      `<div class="nota verde"><strong class="tipo">Repare</strong><p>${v === "par"
+        ? "Com o par (médico, paciente) como chave, um paciente só consulta cada médico <b>uma vez na vida</b>: a segunda consulta violaria a chave primária. Raramente é o que se quer."
+        : v === "data"
+          ? "A data e hora entram na chave. A prescrição herda a chave de três colunas, e a chave estrangeira dela também tem três colunas."
+          : "A chave substituta <code>id_consulta</code> deixa a prescrição com uma FK simples. A regra que a chave natural garantia (o médico não atende dois pacientes no mesmo horário) passa para um <code>UNIQUE</code>."}</p></div>`)}</div></div>`;
+}
+
+/* ---------- generalização ---------- */
+function renderGeneralizacao() {
+  const { total, impl } = casoSt.gen;
+  const FUNC = ent("Funcionário", [["nome", "VARCHAR(80)", 1, 0], ["salario", "DECIMAL(10,2)", 1, 0]]);
+  let tabs, garantias, extra;
+  if (impl === "unica") {
+    const t = tabEntidade(FUNC);
+    const tipos = total ? "'M', 'S'" : "'F', 'M', 'S'";
+    t.cols.push({ n: "tipo", t: "CHAR(1)", nn: true, com: total ? "M = motorista, S = secretária" : "F = só funcionário, M, S" });
+    t.cols.push({ n: "cnh", t: "CHAR(11)", nn: false, com: "só de motorista" });
+    t.cols.push({ n: "categoria", t: "CHAR(1)", nn: false, com: "só de motorista" });
+    t.cols.push({ n: "ramal", t: "CHAR(4)", nn: false, com: "só de secretária" });
+    t.checks.push({ nome: "ck_funcionario_tipo", expr: `tipo IN (${tipos})`, com: total ? "total: não existe funcionário 'genérico'" : "parcial: 'F' é permitido" });
+    t.checks.push({ nome: "ck_funcionario_motorista", expr: "(tipo = 'M') = (cnh IS NOT NULL AND categoria IS NOT NULL)", com: "motorista tem CNH; os outros não" });
+    t.checks.push({ nome: "ck_funcionario_secretaria", expr: "(tipo = 'S') = (ramal IS NOT NULL)", com: "só secretária tem ramal" });
+    tabs = [t];
+    garantias = [
+      { ok: true, txt: "Exclusiva: ninguém é motorista e secretária ao mesmo tempo.", como: "A coluna tipo guarda um valor só." },
+      { ok: true, txt: total ? "Total: todo funcionário é motorista ou secretária." : "Parcial: pode haver funcionário sem especialização.", como: "CHECK em tipo." },
+      { ok: true, txt: "Os dados de cada especialização são obrigatórios para ela e proibidos para as outras.", como: "Os CHECKs comparam tipo com as colunas (MySQL 8.0.16+)." },
+    ];
+    extra = `<div class="nota"><strong class="tipo">Vantagens (apostila, p. 36)</strong><p>Tudo de um funcionário está numa linha: <b>sem junção</b>. A chave primária é guardada <b>uma vez só</b>. O preço: todas as colunas específicas viram opcionais, e as regras de quem preenche o quê passam para os <code>CHECK</code> (ou para a aplicação).</p></div>`;
+  } else {
+    const t = tabEntidade(FUNC);
+    const mot = { nome: "motorista", cols: [{ n: FUNC.pk, t: "INT", nn: true, com: "é a PK e também a FK" }, { n: "cnh", t: "CHAR(11)", nn: true }, { n: "categoria", t: "CHAR(1)", nn: true }], pk: [FUNC.pk], uks: [["cnh"]], fks: [{ cols: [FUNC.pk], ref: FUNC.tabela, refCols: [FUNC.pk], del: "CASCADE" }], checks: [] };
+    const sec = { nome: "secretaria", cols: [{ n: FUNC.pk, t: "INT", nn: true, com: "é a PK e também a FK" }, { n: "ramal", t: "CHAR(4)", nn: true }], pk: [FUNC.pk], uks: [], fks: [{ cols: [FUNC.pk], ref: FUNC.tabela, refCols: [FUNC.pk], del: "CASCADE" }], checks: [] };
+    tabs = [t, mot, sec];
+    garantias = [
+      { ok: true, txt: "Cada motorista ou secretária é um funcionário.", como: "A PK de cada especialização é FK para funcionario." },
+      { ok: true, txt: "Os dados de cada especialização são obrigatórios.", como: "NOT NULL nas tabelas específicas: não há colunas opcionais." },
+      { ok: false, txt: "Exclusiva: ninguém é motorista e secretária ao mesmo tempo.", como: "O mesmo id pode entrar nas duas tabelas. Precisa de trigger ou da aplicação." },
+      total
+        ? { ok: false, txt: "Total: todo funcionário é motorista ou secretária.", como: "Nada obriga uma linha em funcionario a ter par numa das especializações." }
+        : { ok: true, txt: "Parcial: pode haver funcionário sem especialização.", como: "Basta não haver linha dele em motorista nem em secretaria." },
+    ];
+    extra = `<div class="nota"><strong class="tipo">Vantagens (apostila, p. 36)</strong><p>Só são opcionais as colunas que realmente podem ficar vazias, e quem controla isso é o SGBD, pelo <code>NOT NULL</code>. O preço: juntar <code>funcionario</code> com a especialização exige junção, e exclusividade e totalidade não ficam garantidas.</p></div>`;
+  }
+  const svg = `<svg class="der" viewBox="0 0 480 200" role="img" aria-label="Generalização de Funcionário em Motorista e Secretária">
+    ${caixaEnt(170, 6, 140, 44, "Funcionário")}
+    <line class="lig" x1="240" y1="50" x2="240" y2="70"/>
+    <g class="tri"><polygon points="240,70 205,120 275,120"/><text x="285" y="104">${total ? "t" : "p"}</text></g>
+    <path class="lig" d="M215,120 L215,140 L95,140 L95,150 M265,120 L265,140 L385,140 L385,150"/>
+    ${caixaEnt(30, 150, 130, 44, "Motorista")}${caixaEnt(320, 150, 130, 44, "Secretária")}
+  </svg>`;
+  $("#caso").innerHTML = `<div class="grade"><div class="col"><div class="cartao">
+      <h2>Generalização e especialização</h2>
+      <p>Motorista e secretária são funcionários com atributos próprios. A especialização é <b>exclusiva</b> (apostila, p. 16): cada funcionário aparece no máximo uma vez nas folhas. O “t” ou “p” ao lado do triângulo diz se ela é total ou parcial (p. 14–15).</p>
+      ${svg}
+      <h3>Total ou parcial?</h3>
+      ${seg("gen.total", total, [["true", "Total (t)"], ["false", "Parcial (p)"]], "dois texto")}
+      <h3>Como implementar?</h3>
+      ${seg("gen.impl", impl, [["unica", "Uma tabela para a hierarquia"], ["varias", "Uma tabela por entidade"]], "dois texto")}
+    </div></div>
+    <div>${cartaoResultado(tabs, garantias, "generalizacao", `funcionario_${impl}.sql`, [`Generalização ${total ? "total" : "parcial"} e exclusiva: funcionário → motorista | secretária`, impl === "unica" ? "Uma tabela para toda a hierarquia" : "Uma tabela por entidade", "MySQL 8.0.16+"], extra)}</div></div>`;
+}
+
+/* ---------- multivalorado ---------- */
+function renderMultivalorado() {
+  const PES = ent("Pessoa", [["nome", "VARCHAR(80)", 1, 0]]);
+  const tel = { nome: "telefone", cols: [{ n: PES.pk, t: "INT", nn: true }, { n: "numero", t: "VARCHAR(15)", nn: true }, { n: "tipo", t: "VARCHAR(10)", nn: false, com: "celular, fixo..." }], pk: [PES.pk, "numero"], pkCom: "a mesma pessoa não repete o número", uks: [], checks: [], fks: [{ cols: [PES.pk], ref: PES.tabela, refCols: [PES.pk], del: "CASCADE", com: "apagou a pessoa, saem os telefones" }] };
+  const tabs = [tabEntidade(PES), tel];
+  const svg = `<svg class="der" viewBox="0 0 480 110" role="img" aria-label="Pessoa com atributo multivalorado telefone">
+    ${caixaEnt(20, 40, 140, 46, "Pessoa")}
+    <g class="attr"><line class="lig" x1="160" y1="63" x2="250" y2="63"/><circle cx="256" cy="63" r="6"/><text x="268" y="68" font-size="15">telefone (0,n)</text></g>
+  </svg>`;
+  $("#caso").innerHTML = `<div class="grade"><div class="col"><div class="cartao">
+      <h2>Atributo multivalorado</h2>
+      <p>O <code>(0,n)</code> no atributo diz que uma pessoa pode ter vários telefones (apostila, p. 11). O SGBD relacional não tem coluna “com vários valores”, então o atributo vira uma <b>entidade separada</b>, ligada por um 1:n (apostila, p. 32).</p>
+      ${svg}
+      <div class="nota"><strong class="tipo">Os atalhos que não servem</strong>
+      <p><code>telefone1</code>, <code>telefone2</code>, <code>telefone3</code>: limita a quantidade, cria colunas quase sempre vazias e obriga a procurar o número em três lugares.</p>
+      <p><code>telefones = '11 9999-0000, 11 3333-1111'</code>: o banco não consegue validar, indexar nem buscar cada número.</p></div>
+    </div></div>
+    <div>${cartaoResultado(tabs, [
+      { ok: true, txt: "Uma pessoa pode ter 0, 1 ou vários telefones.", como: "Uma linha em telefone para cada número." },
+      { ok: true, txt: "Um telefone não fica sem dono.", como: "id_pessoa é NOT NULL e FK." },
+    ], "multivalorado", "telefone.sql", ["Atributo multivalorado telefone (0,n) em Pessoa", "MySQL 8.0.16+"])}</div></div>`;
+}
+
+/* ---------- identificador externo ---------- */
+function renderExterno() {
+  const EMP = ent("Empregado", [["nome", "VARCHAR(80)", 1, 0]]);
+  const dep = { nome: "dependente", cols: [{ n: EMP.pk, t: "INT", nn: true, com: "identificador externo" }, { n: "no_seq", t: "TINYINT", nn: true, com: "1, 2, 3... dentro de cada empregado" }, { n: "nome", t: "VARCHAR(80)", nn: true }, { n: "data_nasc", t: "DATE", nn: true }],
+    pk: [EMP.pk, "no_seq"], pkCom: "chave composta: empregado + sequência", uks: [], checks: [], fks: [{ cols: [EMP.pk], ref: EMP.tabela, refCols: [EMP.pk], del: "CASCADE", com: "o dependente não existe sem o empregado" }] };
+  const tabs = [tabEntidade(EMP), dep];
+  const svg = `<svg class="der" viewBox="0 0 480 110" role="img" aria-label="Dependente identificado pelo Empregado">
+    <line class="lig" x1="140" y1="55" x2="172" y2="55"/><line class="lig" x1="308" y1="55" x2="340" y2="55" stroke-width="5"/>
+    ${caixaEnt(14, 32, 126, 46, "Empregado")}${losango(240, 55, 136, 52, "dependência")}${caixaEnt(340, 32, 126, 46, "Dependente")}
+    <g class="card"><rect x="138" y="12" width="58" height="26" rx="6"/><text x="167" y="30" text-anchor="middle">(1,1)</text></g>
+    <g class="card"><rect x="284" y="12" width="58" height="26" rx="6"/><text x="313" y="30" text-anchor="middle">(0,n)</text></g>
+    <text class="papel" x="340" y="98">no_seq ● identificador</text>
+  </svg>`;
+  $("#caso").innerHTML = `<div class="grade"><div class="col"><div class="cartao">
+      <h2>Identificador externo</h2>
+      <p>Um dependente é identificado pelo <b>empregado</b> a que pertence e por um número de sequência: “o dependente 2 do empregado 15”. A linha grossa marca o relacionamento identificador (apostila, p. 12–13 e 32).</p>
+      ${svg}
+      <p>Regra da apostila: o identificador externo vira coluna da tabela <b>e faz parte da chave primária</b>.</p>
+      <p style="font-family:var(--mono);background:var(--creme2);padding:8px 12px;border-radius:8px">Dependente (<u>CodEmpreg</u>, <u>NoSeq</u>, Nome)</p>
+    </div></div>
+    <div>${cartaoResultado(tabs, [
+      { ok: true, txt: "Dois empregados podem ter um “dependente 1” cada.", como: "A chave é o par (id_empregado, no_seq)." },
+      { ok: true, txt: "Todo dependente tem um empregado.", como: "id_empregado faz parte da PK: não aceita NULL." },
+      { ok: false, txt: "A numeração 1, 2, 3 sem buracos.", como: "AUTO_INCREMENT não reinicia por empregado; a aplicação calcula o próximo no_seq." },
+    ], "externo", "dependente.sql", ["Identificador externo: dependente identificado pelo empregado", "MySQL 8.0.16+"])}</div></div>`;
+}
+
+/* =====================================================================
+   Treino de cardinalidade
+   ===================================================================== */
+const QUIZ = [
+  { txt: "Todo pedido é feito por exatamente um cliente. Um cliente pode estar cadastrado sem ter feito pedido, ou ter feito vários.", A: "Cliente", B: "Pedido", rel: "faz", ca: "11", cb: "0n" },
+  { txt: "Cada país tem exatamente uma capital. Uma cidade é capital de no máximo um país, e a maioria das cidades não é capital de nenhum.", A: "País", B: "Cidade", rel: "é capital de", ca: "01", cb: "11" },
+  { txt: "Um aluno se matricula em uma ou mais disciplinas. Uma disciplina pode ser aberta sem nenhum aluno matriculado, ou ter muitos.", A: "Aluno", B: "Disciplina", rel: "matrícula", ca: "0n", cb: "1n" },
+  { txt: "Cada empregado ocupa no máximo uma mesa, e há quem trabalhe de casa, sem mesa. Uma mesa tem no máximo um ocupante e pode ficar vaga.", A: "Empregado", B: "Mesa", rel: "ocupa", ca: "01", cb: "01" },
+  { txt: "Um livro tem um ou mais autores. Só se cadastra um autor que tenha pelo menos um livro, e ele pode ter vários.", A: "Autor", B: "Livro", rel: "escreve", ca: "1n", cb: "1n" },
+  { txt: "Todo departamento tem exatamente um gerente, que é um funcionário. Um funcionário gerencia no máximo um departamento, e a maioria não gerencia nenhum.", A: "Funcionário", B: "Departamento", rel: "gerencia", ca: "11", cb: "01" },
+  { txt: "Um jogador pode estar sem time (passe livre), mas joga em no máximo um. Todo time cadastrado tem pelo menos um jogador.", A: "Time", B: "Jogador", rel: "contrata", ca: "01", cb: "1n" },
+  { txt: "Uma conferência tem exatamente uma comissão organizadora, e cada comissão organiza exatamente uma conferência.", A: "Conferência", B: "Comissão", rel: "organiza", ca: "11", cb: "11" },
+  { txt: "Uma nota fiscal tem um ou mais itens. Cada item pertence a exatamente uma nota fiscal.", A: "Nota fiscal", B: "Item", rel: "contém", ca: "11", cb: "1n" },
+  { txt: "Um médico pode atender vários pacientes, ou nenhum ainda. Um paciente pode ser atendido por vários médicos, ou nenhum ainda.", A: "Médico", B: "Paciente", rel: "atende", ca: "0n", cb: "0n" },
+];
+const quiz = { i: 0, ca: null, cb: null, conferido: false, acertos: 0, feitos: 0, ordem: [] };
+function embaralhar() { quiz.ordem = QUIZ.map((_, i) => i).sort(() => Math.random() - 0.5); quiz.i = 0; }
+
+function renderTreino() {
+  const q = QUIZ[quiz.ordem[quiz.i]];
+  const pl = (s) => plural(s);
+  const lado = (k, nome, outro) => `<div class="lado"><h4>Ao lado de <b>${esc(nome)}</b>: quantos ${esc(pl(nome))} para cada ${esc(outro)}?</h4>
+    <div class="seg" role="group">${ORDEM.map((o) => `<button type="button" data-quiz="${k}" data-v="${o}" aria-pressed="${quiz[k] === o}" ${quiz.conferido ? "disabled" : ""}>${CARD[o].txt}</button>`).join("")}</div></div>`;
+  const rel = q.rel || "";
+  const svg = `<svg class="der" viewBox="0 0 480 120" role="img" aria-label="${esc(q.A)} e ${esc(q.B)}">
+      <line class="lig" x1="130" y1="70" x2="185" y2="70"/><line class="lig" x1="295" y1="70" x2="350" y2="70"/>
+      ${caixaEnt(4, 47, 126, 46, q.A)}${caixaEnt(350, 47, 126, 46, q.B)}${losango(240, 70, 110, 56, rel)}
+      <g class="card"><rect x="132" y="31" width="60" height="26" rx="6"/><text x="162" y="49" text-anchor="middle">${quiz.ca ? CARD[quiz.ca].txt : "(?,?)"}</text></g>
+      <g class="card"><rect x="288" y="31" width="60" height="26" rx="6"/><text x="318" y="49" text-anchor="middle">${quiz.cb ? CARD[quiz.cb].txt : "(?,?)"}</text></g>
+    </svg>`;
+  let ret = "";
+  if (quiz.conferido) {
+    const okA = quiz.ca === q.ca, okB = quiz.cb === q.cb;
+    const trocou = !okA && !okB && quiz.ca === q.cb && quiz.cb === q.ca;
+    const certo = okA && okB;
+    const linha = (ok, cod, marcou, suj, obj) => `<li><span class="${ok ? "m-ok" : "m-nao"}">${ok ? "✔" : "✘"}</span><span>Ao lado de <b>${esc(obj)}</b>: <code>${CARD[cod].txt}</code>${ok ? "" : ` (você marcou <code>${CARD[marcou].txt}</code>)`}<small>Cada ${esc(suj)} se liga a ${esc(quant(cod, obj, pl(obj)))}.</small></span></li>`;
+    ret = `<div class="retorno"><div class="veredito${certo ? "" : " nao"}"><strong>${certo ? "Certo" : trocou ? "Lados trocados" : "Ainda não"}</strong><p>${certo
+      ? "As duas cardinalidades estão no lugar."
+      : trocou
+        ? "Os valores estão certos, mas cada um foi para o lado errado. A cardinalidade fica junto da entidade que ela <b>conta</b>: para saber o que vai ao lado de " + esc(q.A) + ", pergunte “cada " + esc(q.B) + " se liga a quantos " + esc(pl(q.A)) + "?”."
+        : "Confira cada lado com a pergunta “cada <i>(o outro)</i> se liga a quantos <i>(este)</i>?”."}</p></div>
+      <ul class="garantias">${linha(okA, q.ca, quiz.ca, q.B, q.A)}${linha(okB, q.cb, quiz.cb, q.A, q.B)}</ul></div>`;
+  }
+  $("#treino").innerHTML = `<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="rotulo">Frase ${quiz.i + 1} de ${QUIZ.length}</span><span class="placar">${quiz.acertos}/${quiz.feitos} certas</span></div>
+    <p class="enunciado">${esc(q.txt)}</p>${svg}
+    <div class="lados">${lado("ca", q.A, q.B)}${lado("cb", q.B, q.A)}</div>${ret}
+    <div class="botoes">${quiz.conferido
+      ? `<button class="btn-prim" type="button" id="qProx">${quiz.i + 1 < QUIZ.length ? "Próxima frase →" : "Recomeçar"}</button><button class="btn-sec" type="button" id="qVer">Ver a conversão</button>`
+      : `<button class="btn-prim" type="button" id="qConf" ${quiz.ca && quiz.cb ? "" : "disabled"}>Conferir</button>`}</div>`;
+}
+$("#treino").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-quiz]");
+  if (b && !quiz.conferido) { quiz[b.dataset.quiz] = b.dataset.v; renderTreino(); return; }
+  if (ev.target.id === "qConf") {
+    const q = QUIZ[quiz.ordem[quiz.i]];
+    quiz.conferido = true; quiz.feitos++;
+    if (quiz.ca === q.ca && quiz.cb === q.cb) quiz.acertos++;
+    renderTreino();
+  } else if (ev.target.id === "qProx") {
+    if (quiz.i + 1 < QUIZ.length) quiz.i++; else { embaralhar(); quiz.acertos = 0; quiz.feitos = 0; }
+    quiz.ca = quiz.cb = null; quiz.conferido = false; renderTreino();
+  } else if (ev.target.id === "qVer") {
+    const q = QUIZ[quiz.ordem[quiz.i]];
+    const c = {
+      id: "treino", rotulo: `${q.A} × ${q.B}`, rel: q.rel || "relaciona", ca: q.ca, cb: q.cb,
+      A: { nome: q.A, cols: [["nome", "VARCHAR(80)", 1, 0]] }, B: { nome: q.B, cols: [["descricao", "VARCHAR(80)", 1, 0]] },
+      attr: ["data_registro", "DATE"],
+    };
+    const i = CENARIOS.findIndex((x) => x.id === "treino");
+    if (i >= 0) CENARIOS[i] = c; else CENARIOS.push(c);
+    carregarCenario(c); st.attr = false;
+    renderCenarios(); renderConversor(); abrirAba("conversor");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+});
+
+/* =====================================================================
+   Abas e início
+   ===================================================================== */
+function abrirAba(nome) {
+  ["conversor", "casos", "treino"].forEach((n) => {
+    $(`#aba-${n}`).setAttribute("aria-selected", String(n === nome));
+    $(`#p-${n}`).hidden = n !== nome;
+  });
+}
+document.querySelector(".abas").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".aba");
+  if (!b) return;
+  abrirAba(b.id.replace("aba-", ""));
+  window.scrollTo({ top: 0 });
+});
+
+carregarCenario(CENARIOS[0]);
+lerHash();
+renderCenarios();
+renderConversor();
+renderCasos();
+embaralhar();
+renderTreino();
+</script>
+</body>
+</html>
